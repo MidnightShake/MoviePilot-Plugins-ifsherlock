@@ -123,6 +123,16 @@ class AutoSubv3(AutoSubv3CompatMixin, _PluginBase):
         # 如果没有配置信息， 则不处理
         if not config:
             return
+        # --- 新增：补全可能缺失的配置键，防止前端表单渲染崩溃 ---
+        need_update = False
+        if "hanvert_only" not in config:
+            config["hanvert_only"] = False
+            need_update = True
+        # 如果以后还会新增其他键，可以继续在这里检查
+
+        if need_update:
+            self.update_config(config)
+            logger.info("[AutoSubv3] 已补全存储配置中缺失的键: hanvert_only")
         # 清理插件启动前的残留临时文件
         tempdir = tempfile.gettempdir()
         for file in os.listdir(tempdir):
