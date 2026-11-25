@@ -1,4 +1,4 @@
-﻿# AI字幕生成(联动版) (AutoSubv3)
+# AI字幕生成(联动版) (AutoSubv3)
 
 MoviePilot V3 专用插件，用于从视频音轨、内嵌字幕或外挂字幕中生成字幕，并可调用大模型翻译为中文。V2 版本保留在 `plugins.v2/autosubv3`。
 
@@ -145,8 +145,17 @@ A: 使用更小的模型（tiny/base），或考虑 GPU 加速
 **Q: 批量翻译失败率高？**
 A: 降低 batch_size（建议 10-20），检查模型能力
 
+## 前端构建与版本号（重要）
+
+- 修改 `src/components/*.vue` 后必须执行 `npm run build`，并把 `dist/` 一起提交；插件运行的是编译产物，不是源码。
+- 后端把联邦入口下发为 `/api/v1/plugin/file/autosubv3/dist/assets/remoteEntry.js?v=<plugin_version>`，`v` 与当前插件版本一致时响应 `Cache-Control: private, max-age=31536000, immutable`。也就是说**同一个版本号的 remoteEntry.js 会被浏览器缓存一年**。
+- 因此只要前端产物有变化（文件名 hash 变化），就必须同时提升三处版本号：插件类里的 `plugin_version`、`package.v3.json` 的 `version` 与 `history`、插件目录 `package.json` 的 `version`。只重建 `dist` 而不升版本，重装同一版本后浏览器仍用旧 `remoteEntry.js`，它引用的旧 hash 分块已被删除，表现为「组件加载错误 / 无法加载组件，请稍后再试」。
+- 临时验证可用 DevTools 勾选 Disable cache 后刷新，或在 Network 里确认 `remoteEntry.js` 是否命中 `(disk cache)`、其后是否有 `Failed to fetch dynamically imported module` / 404。
+- 发布工作流有版本门禁 `.github/scripts/check_plugin_versions.py`：`package.v3.json` 的版本必须与插件目录 `package.json` 一致，否则不会生成 Release 压缩包（安装会回退为逐文件下载）。
+
 ## 版本历史
 
+- v4.0.6: 配置页补齐「独立繁体转简体（关闭 AI 翻译）」开关与互斥逻辑；提升版本号避免旧 `remoteEntry.js` 长期缓存导致组件加载错误
 - v3.5.60: 联动外挂字幕入队前校验视频季集号，拒绝把其他集字幕提交 AI 翻译
 - v3.5.59: 修复模型选项对象被错误保存和提交的问题，自动迁移已损坏的模型配置
 - v3.5.58: 新增多 API 端点、主线路与自动故障切换，拆分 AI API 设置标签，并完善任务失败原因和脱敏日志

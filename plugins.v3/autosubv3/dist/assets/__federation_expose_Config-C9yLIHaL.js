@@ -879,8 +879,9 @@ return (_ctx, _cache) => {
                           modelValue: config.translate_zh,
                           "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.translate_zh) = $event)),
                           label: "外语翻译成中文",
-                          "hide-details": ""
-                        }, null, 8, ["modelValue"])
+                          "hide-details": "",
+                          disabled: config.hanvert_only
+                        }, null, 8, ["modelValue", "disabled"])
                       ]),
                       _: 1
                     }),
@@ -1240,6 +1241,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const Config = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ab298107"]]);
+const Config = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-bfa5be6e"]]);
 
 export { Config as default };

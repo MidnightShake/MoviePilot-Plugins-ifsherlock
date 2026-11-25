@@ -83,25 +83,25 @@
 }
 }
 
-.autosub-config[data-v-ab298107] {
+.autosub-config[data-v-bfa5be6e] {
   background: rgb(var(--v-theme-background));
 }
-.config-shell[data-v-ab298107] {
+.config-shell[data-v-bfa5be6e] {
   padding: 18px;
 }
-.config-tabs[data-v-ab298107] {
+.config-tabs[data-v-bfa5be6e] {
   padding-inline: 10px;
 }
-.config-section[data-v-ab298107] {
+.config-section[data-v-bfa5be6e] {
   margin-bottom: 20px;
 }
-.section-title[data-v-ab298107] {
+.section-title[data-v-bfa5be6e] {
   color: rgba(var(--v-theme-on-surface), 0.68);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 8px;
 }
-.config-footer[data-v-ab298107] {
+.config-footer[data-v-bfa5be6e] {
   align-items: center;
   border-top: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   display: flex;

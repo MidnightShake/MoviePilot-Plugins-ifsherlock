@@ -238,10 +238,15 @@ function save() {
             <VSwitch v-model="config.run_now" label="手动执行一次" color="secondary" hide-details />
           </VCol>
           <VCol cols="12" md="3">
-            <VSwitch v-model="config.translate_zh" label="外语翻译成中文" hide-details />
+            <VSwitch
+              v-model="config.translate_zh"
+              label="外语翻译成中文"
+              hide-details
+              :disabled="config.hanvert_only"
+            />
           </VCol>
           <VCol cols="12" md="3">
-            <VSwitch  v-model="config.hanvert_only" label="独立繁体转简体（关闭 AI 翻译）" color="success" hide-details />
+            <VSwitch v-model="config.hanvert_only" label="独立繁体转简体（关闭 AI 翻译）" color="success" hide-details />
           </VCol>
           <VCol cols="12" md="3">
             <VSwitch v-model="config.skip_chinese" label="中文视频不翻译" hide-details />
