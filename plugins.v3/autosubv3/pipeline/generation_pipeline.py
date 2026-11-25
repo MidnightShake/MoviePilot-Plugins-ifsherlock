@@ -197,7 +197,7 @@ class GenerationPipeline:
                     self._logger.info(
                         f"[Step 6-Hanvert] 繁转简完成，已落盘：{translated_subtitle}"
                     )
-                    return TaskStatus.SUCCESS
+                    return TaskStatus.COMPLETED
                 except Exception as exc:
                     self._set_task_error(f"繁转简异常：{exc}")
                     self._logger.error("[Step 6-Hanvert] 失败", exc_info=True)
