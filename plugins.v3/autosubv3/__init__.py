@@ -1,4 +1,4 @@
-﻿import os
+import os
 import tempfile
 from datetime import datetime
 from typing import Tuple, Dict, Any, List, Optional
@@ -86,6 +86,7 @@ class AutoSubv3(AutoSubv3CompatMixin, _PluginBase):
     _path_list = None
     _file_size = None
     _translate_zh = None
+    _hanvert_only = None   
     _openai = None
     _openai_endpoints = None
     _openai_active_endpoint = None
@@ -157,6 +158,7 @@ class AutoSubv3(AutoSubv3CompatMixin, _PluginBase):
         self._max_segment_duration = float(config.get('max_segment_duration')) if config.get('max_segment_duration') else 8.0
         self._max_segment_chars = int(config.get('max_segment_chars')) if config.get('max_segment_chars') else 50
         self._translate_zh = config.get('translate_zh', False)
+        self._hanvert_only = bool(config.get('hanvert_only', False))
         if self._hanvert_only:
             self._translate_zh = False
             logger.info("[AutoSubv3] 独立繁体转简体已启用，AI 翻译已强制关闭")
