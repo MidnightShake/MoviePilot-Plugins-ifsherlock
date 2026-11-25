@@ -1,3 +1,4 @@
+[project]
 dependencies = [
     "ass-hanvert>=0.2.0",
     "light-ass>=0.1.0",
