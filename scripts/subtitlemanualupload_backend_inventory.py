@@ -53,6 +53,8 @@ MIGRATION_TARGETS = {
     "config_runtime": "config",
     "config_schema": "config",
     "autosub_bridge": "integrations",
+    "subtitle_formats": "matching",
+    "subtitle_encoding": "matching",
     "subtitle_history": "matching",
     "subtitle_language": "matching",
     "subtitle_writer": "matching",

@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+from .subtitle_formats import is_bitmap_subtitle
+
 MATCH_HISTORY_CACHE_VERSION = 3
 
 
@@ -390,7 +392,7 @@ class SubtitleHistory:
 
     def match_history_items(self, *, keyword: str = "", media_type: str = "all") -> List[Dict[str, Any]]:
         owner = self._owner
-        entries = owner.services.local_media_catalog().load_local_entries(allow_stale=True)
+        entries = owner.services.local_media_catalog().load_local_entries()
         signature = self.match_history_signature(entries, include_filesystem=True)
         cache = owner._match_history_cache or {}
         loaded_at = owner._cache_loaded_at(cache.get("loaded_at"))
@@ -477,6 +479,9 @@ class SubtitleHistory:
                 seen.add(key)
                 if not subtitle_path.is_file():
                     skipped.append({"target_id": target_id, "subtitle_path": str(subtitle_path), "reason": "外挂字幕不存在"})
+                    continue
+                if is_bitmap_subtitle(subtitle_path):
+                    skipped.append({"target_id": target_id, "subtitle_path": str(subtitle_path), "reason": "图片字幕不支持文本调轴"})
                     continue
                 try:
                     raw_bytes = subtitle_path.read_bytes()

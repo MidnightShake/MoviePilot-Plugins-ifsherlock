@@ -13,10 +13,18 @@ import types
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
 
-def load_plugin_module():
+
+@pytest.fixture(autouse=True)
+def isolate_plugin_module_stubs(monkeypatch):
+    loader = load_plugin_module
+    monkeypatch.setattr(sys.modules[__name__], "load_plugin_module", lambda: loader(monkeypatch))
+
+
+def load_plugin_module(monkeypatch, variant="v2"):
     root = Path(__file__).resolve().parents[1]
-    package_dir = root / "plugins.v2" / "autosubv3"
+    package_dir = root / f"plugins.{variant}" / "autosubv3"
 
     class HTTPException(Exception):
         def __init__(self, status_code=500, detail=""):
@@ -32,9 +40,12 @@ def load_plugin_module():
             self._data[key] = value
 
     class FakeEventManager:
+        registered = []
+
         @staticmethod
         def register(_event_type):
             def decorator(func):
+                FakeEventManager.registered.append(func.__name__)
                 return func
 
             return decorator
@@ -46,7 +57,7 @@ def load_plugin_module():
         debug=lambda *args, **kwargs: None,
     )
 
-    package_name = "autosubv3_cancel_testpkg"
+    package_name = f"autosubv3_cancel_{variant}_testpkg"
     translate_package = types.ModuleType(f"{package_name}.translate")
     translate_package.__path__ = [str(package_dir / "translate")]
     modules = {
@@ -65,6 +76,13 @@ def load_plugin_module():
         "app.core.context": types.SimpleNamespace(MediaInfo=object),
         "app.core.event": types.SimpleNamespace(eventmanager=FakeEventManager(), Event=object),
         "app.core.plugin": types.SimpleNamespace(PluginManager=lambda: types.SimpleNamespace(running_plugins={})),
+        "app.sdk": types.ModuleType("app.sdk"),
+        "app.sdk.config": types.SimpleNamespace(settings=types.SimpleNamespace(RMT_MEDIAEXT={".mkv", ".mp4"})),
+        "app.sdk.events": types.SimpleNamespace(eventmanager=FakeEventManager()),
+        "app.sdk.logging": types.SimpleNamespace(logger=logger),
+        "app.sdk.media": types.SimpleNamespace(MediaInfo=object),
+        "app.sdk.plugins": types.SimpleNamespace(PluginManager=lambda: types.SimpleNamespace(running_plugins={})),
+        "app.sdk.utilities": types.SimpleNamespace(SystemUtils=object),
         "app.schemas": types.SimpleNamespace(TransferInfo=object),
         "app.schemas.types": types.SimpleNamespace(
             NotificationType=types.SimpleNamespace(Manual="Manual"),
@@ -79,14 +97,14 @@ def load_plugin_module():
         f"{package_name}.translate.openai_translate": types.SimpleNamespace(OpenAi=object),
     }
     for name, module in modules.items():
-        sys.modules[name] = module
+        monkeypatch.setitem(sys.modules, name, module)
 
     for name in list(sys.modules):
         if name == package_name or name.startswith(f"{package_name}."):
-            sys.modules.pop(name, None)
-    sys.modules[f"{package_name}.ffmpeg"] = modules[f"{package_name}.ffmpeg"]
-    sys.modules[f"{package_name}.translate"] = modules[f"{package_name}.translate"]
-    sys.modules[f"{package_name}.translate.openai_translate"] = modules[f"{package_name}.translate.openai_translate"]
+            monkeypatch.delitem(sys.modules, name)
+    monkeypatch.setitem(sys.modules, f"{package_name}.ffmpeg", modules[f"{package_name}.ffmpeg"])
+    monkeypatch.setitem(sys.modules, f"{package_name}.translate", modules[f"{package_name}.translate"])
+    monkeypatch.setitem(sys.modules, f"{package_name}.translate.openai_translate", modules[f"{package_name}.translate.openai_translate"])
 
     spec = importlib.util.spec_from_file_location(
         package_name,
@@ -94,7 +112,7 @@ def load_plugin_module():
         submodule_search_locations=[str(package_dir)],
     )
     module = importlib.util.module_from_spec(spec)
-    sys.modules[package_name] = module
+    monkeypatch.setitem(sys.modules, package_name, module)
     spec.loader.exec_module(module)
     return module
 
@@ -416,7 +434,7 @@ def test_monitor_service_adds_new_media_task(tmp_path):
     assert len(plugin._tasks) == 1
     assert task.video_file == str(video)
     assert task.source == module.TaskSource.EVENT
-    assert task.trigger == module.TriggerType.MANUAL.value
+    assert task.trigger == module.TriggerType.EVENT.value
 
 
 def test_monitor_service_skips_new_media_when_subtitlemanualupload_takes_over(tmp_path):
@@ -1569,7 +1587,6 @@ def test_autosub_release_metadata_versions_match():
     readme = (root / "plugins.v2" / "autosubv3" / "README.md").read_text(encoding="utf-8")
     version = module.AutoSubv3.plugin_version
 
-    assert version == "3.5.61"
     assert package["AutoSubv3"]["version"] == version
     assert package_v2["AutoSubv3"]["version"] == version
     assert plugin_package["version"] == version

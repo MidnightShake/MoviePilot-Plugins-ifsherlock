@@ -32,9 +32,11 @@ class OnlineSubtitleResult:
     identity_status: str = ""
     reject_reason: str = ""
     match_detail: str = ""
+    translation_source: str = "unknown"
 
     def to_dict(self) -> Dict[str, Any]:
         from .language import _language_category_from_text
+        from ..matching.subtitle_language import online_result_language_bucket
 
         return {
             "provider": self.provider,
@@ -44,6 +46,7 @@ class OnlineSubtitleResult:
             "page_url": self.page_url,
             "download_url": self.download_url,
             "language": self.language,
+            "language_bucket": online_result_language_bucket({"title": self.title, "language": self.language}),
             "format": self.format,
             "season": self.season,
             "episode": self.episode,
@@ -63,6 +66,7 @@ class OnlineSubtitleResult:
             "identity_status": self.identity_status,
             "reject_reason": self.reject_reason,
             "match_detail": self.match_detail,
+            "translation_source": self.translation_source,
         }
 
 

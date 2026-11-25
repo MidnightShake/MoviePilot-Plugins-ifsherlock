@@ -114,7 +114,8 @@ def make_plugin(module):
     plugin._auto_skip_chinese_media_on_transfer = True
     plugin._auto_transfer_subtitle_strategy = "online_then_ai_source"
     plugin._auto_multi_subtitle_mode = "best"
-    plugin._auto_subtitle_language_priority = ["bilingual", "chi", "cht", "eng"]
+    # General cache/AI cases allow monolingual subtitles; bilingual cases opt in explicitly.
+    plugin._auto_subtitle_language_priority = ["chi", "cht", "eng"]
     plugin._auto_subtitle_format_priority = [".ass", ".srt", ".ssa", ".vtt", ".webvtt", ".sbv", ".sub"]
     plugin._auto_ass_to_srt_for_ai = True
     plugin._auto_search_min_score = 20
@@ -332,6 +333,7 @@ def test_subtitle_inventory_is_reexported_from_target_resolver(tmp_path):
             "path": str(subtitle),
             "relative_path": str(subtitle).replace("\\", "/"),
             "ext": ".srt",
+            "is_bitmap": False,
             "language_suffix": "chi",
             "language_category": "chinese",
             "backup_path": str(backup),
@@ -803,6 +805,7 @@ def test_target_has_chinese_subtitle_checks_external_and_embedded_tracks():
         {"id": "m1"},
         target,
         subtitle_inventory=inventory,
+        language_priority=["chi"],
     )
     assert target["embedded_subtitle_count"] == 1
 
@@ -1067,10 +1070,13 @@ def test_archive_subtitle_extractor_uses_dependency_service_for_7z(tmp_path):
 
         def list_rar_members(self, archive_path, tool_path):
             calls.append(("list", Path(archive_path).name, tool_path))
-            return ["nested/Movie.zh.ass", "notes.txt"]
+            return [
+                upload_session.ArchiveMember("nested/Movie.zh.ass", 0, 8),
+                upload_session.ArchiveMember("notes.txt", 1),
+            ]
 
         def read_rar_member(self, archive_path, member, tool_path):
-            calls.append(("read", member, tool_path))
+            calls.append(("read", member.name, tool_path))
             return b"subtitle"
 
     extractor = upload_session.ArchiveSubtitleExtractor(
@@ -1089,6 +1095,7 @@ def test_archive_subtitle_extractor_uses_dependency_service_for_7z(tmp_path):
             "upload_id": "archive-upload-id",
             "source_name": "Movie.zh.ass",
             "archive_name": "sample.7z",
+            "archive_member": "nested/Movie.zh.ass",
             "stored_path": str(tmp_path / "archive-upload-id.ass"),
             "ext": ".ass",
         }
@@ -1119,9 +1126,9 @@ def test_unar_archive_commands_use_lsar_json_and_stdout_extract(tmp_path):
             return json.dumps(
                 {
                     "lsarContents": [
-                        {"XADFileName": "nested/Movie.zh.ass"},
-                        {"XADFileName": "nested", "XADIsDirectory": True},
-                        {"XADFileName": "notes.txt"},
+                        {"XADFileName": "nested/Movie.zh.ass", "XADIndex": 0, "XADFileSize": 8},
+                        {"XADFileName": "nested", "XADIsDirectory": True, "XADIndex": 1},
+                        {"XADFileName": "notes.txt", "XADIndex": 2},
                     ]
                 }
             ).encode("utf-8")
@@ -1135,16 +1142,19 @@ def test_unar_archive_commands_use_lsar_json_and_stdout_extract(tmp_path):
     )
     member_bytes = upload_session.read_rar_member(
         archive_path,
-        "nested/Movie.zh.ass",
+        members[0],
         str(unar_path),
         run_command=run_command,
     )
 
-    assert members == ["nested/Movie.zh.ass", "notes.txt"]
+    assert members == [
+        upload_session.ArchiveMember("nested/Movie.zh.ass", 0, 8),
+        upload_session.ArchiveMember("notes.txt", 2),
+    ]
     assert member_bytes == b"subtitle"
     assert calls == [
-        (str(lsar_path), "-json", str(archive_path)),
-        (str(unar_path), "-quiet", "-no-directory", "-output-directory", "-", str(archive_path), "nested/Movie.zh.ass"),
+        (str(lsar_path), "-json", "-no-recursion", str(archive_path)),
+        (str(unar_path), "-quiet", "-no-directory", "-no-recursion", "-indexes", "-output-directory", "-", str(archive_path), "0"),
     ]
 
 
@@ -1478,9 +1488,9 @@ def test_7z_archive_extraction_with_unar_tool(tmp_path):
             output = json.dumps(
                 {
                     "lsarContents": [
-                        {"XADFileName": "说明.txt"},
-                        {"XADFileName": "Jack.Reacher.2012.chs&eng.ass"},
-                        {"XADFileName": "Jack.Reacher.2012.eng.ass"},
+                        {"XADFileName": "说明.txt", "XADIndex": 0},
+                        {"XADFileName": "Jack.Reacher.2012.chs&eng.ass", "XADIndex": 1},
+                        {"XADFileName": "Jack.Reacher.2012.eng.ass", "XADIndex": 2},
                     ]
                 }
             ).encode()
@@ -4427,7 +4437,7 @@ def test_auto_transfer_skips_before_search_when_video_has_embedded_chinese_subti
         module.subprocess.run = original_run
 
     assert result["status"] == "skipped"
-    assert result["reason"] == "目标已有中文字幕"
+    assert result["reason"] == "目标已有符合语言要求的字幕"
 
 
 def test_auto_transfer_ai_source_only_skips_embedded_chinese_before_ai(tmp_path):
@@ -4453,7 +4463,7 @@ def test_auto_transfer_ai_source_only_skips_embedded_chinese_before_ai(tmp_path)
         module.subprocess.run = original_run
 
     assert result["status"] == "skipped"
-    assert result["reason"] == "目标已有中文字幕"
+    assert result["reason"] == "目标已有符合语言要求的字幕"
 
 
 def test_auto_transfer_samples_unknown_embedded_text_subtitle_content(tmp_path):
@@ -4489,7 +4499,7 @@ def test_auto_transfer_samples_unknown_embedded_text_subtitle_content(tmp_path):
         module.subprocess.run = original_run
 
     assert result["status"] == "skipped"
-    assert result["reason"] == "目标已有中文字幕"
+    assert result["reason"] == "目标已有符合语言要求的字幕"
 
 
 def test_auto_transfer_embedded_english_subtitle_still_searches(tmp_path):
@@ -4544,7 +4554,7 @@ def test_auto_transfer_embedded_regional_chinese_language_tag_skips(tmp_path):
         module.subprocess.run = original_run
 
     assert result["status"] == "skipped"
-    assert result["reason"] == "目标已有中文字幕"
+    assert result["reason"] == "目标已有符合语言要求的字幕"
 
 
 def test_auto_transfer_embedded_chinese_pgs_does_not_skip_online_search(tmp_path):
@@ -4652,7 +4662,7 @@ def test_auto_transfer_group_skips_embedded_chinese_target_before_season_search(
         module.subprocess.run = original_run
 
     assert results["e1"]["status"] == "skipped"
-    assert results["e1"]["reason"] == "目标已有中文字幕"
+    assert results["e1"]["reason"] == "目标已有符合语言要求的字幕"
     assert cache_ids == ["e2"]
     assert season_ids == ["e2"]
     assert searched == ["e2"]
@@ -4835,7 +4845,7 @@ def test_auto_subtitle_preference_config_normalizes_legacy_strings(tmp_path):
 
     normalized = config_schema.normalize_plugin_config(raw_config, subtitle_exts=module.SubtitleManualUpload._subtitle_exts)
     assert normalized["auto_multi_subtitle_mode"] == "chinese_all"
-    assert normalized["auto_subtitle_language_priority"][:4] == ["eng", "bilingual", "chi", "cht"]
+    assert normalized["auto_subtitle_language_priority"][:5] == ["eng", "chi&eng", "chi&jp", "chi&kr", "other_bilingual"]
     assert normalized["auto_subtitle_format_priority"][:4] == [".srt", ".ass", ".ssa", ".vtt"]
     assert ".sbv" in normalized["auto_subtitle_format_priority"]
     assert normalized["auto_ass_to_srt_for_ai"] is False
@@ -4859,7 +4869,7 @@ def test_auto_subtitle_preference_config_normalizes_legacy_strings(tmp_path):
     plugin.init_plugin(raw_config)
 
     assert plugin._auto_multi_subtitle_mode == "chinese_all"
-    assert plugin._auto_subtitle_language_priority[:4] == ["eng", "bilingual", "chi", "cht"]
+    assert plugin._auto_subtitle_language_priority[:5] == ["eng", "chi&eng", "chi&jp", "chi&kr", "other_bilingual"]
     assert plugin._auto_subtitle_format_priority[:4] == [".srt", ".ass", ".ssa", ".vtt"]
     assert ".sbv" in plugin._auto_subtitle_format_priority
     assert plugin._auto_ass_to_srt_for_ai is False
@@ -4902,6 +4912,16 @@ def test_auto_subtitle_preference_config_normalizes_legacy_strings(tmp_path):
     assert saved_config["opensubtitles_url"] == plugin._online_site_urls["opensubtitles"]
 
 
+def test_strict_language_requires_selection():
+    module, _, _ = load_plugin_module()
+    config_schema = plugin_submodule(module, "config.config_schema")
+
+    with pytest.raises(ValueError, match="至少选择一种语言"):
+        config_schema.normalize_plugin_config({"auto_subtitle_language_strict": True, "auto_subtitle_language_priority": []})
+    normalized = config_schema.normalize_plugin_config({"auto_subtitle_language_priority": ["bilingual"]})
+    assert normalized["auto_subtitle_language_priority"][:4] == ["chi&eng", "chi&jp", "chi&kr", "other_bilingual"]
+
+
 def test_config_schema_default_config_covers_config_vue_bound_fields():
     module, _, _ = load_plugin_module()
     config_schema = plugin_submodule(module, "config.config_schema")
@@ -4916,8 +4936,8 @@ def test_config_schema_default_config_covers_config_vue_bound_fields():
     for field in bound_fields:
         assert default_config[field] == config_schema.DEFAULT_CONFIG[field]
 
-    assert "online_providers: ['subhd', 'zimuku']" in vue_text
-    assert "auto_subtitle_language_priority: ['bilingual', 'chi', 'cht', 'eng']" in vue_text
+    assert "online_providers: [...defaultOnlineProviderIds]" in vue_text
+    assert "auto_subtitle_language_priority: ['chi&eng', 'chi&jp', 'chi&kr', 'other_bilingual', 'chi', 'cht', 'eng']" in vue_text
     assert "auto_subtitle_format_priority: ['.ass', '.srt', '.ssa', '.vtt']" in vue_text
     assert "timeline_max_offset_seconds: 120" in vue_text
     assert "rar_dependency_mode: 'none'" in vue_text
@@ -4942,7 +4962,7 @@ def test_auto_transfer_existing_chinese_subtitle_skips_all_strategies(tmp_path):
     result = service.auto_process_transfer_entry(entry)
 
     assert result["status"] == "skipped"
-    assert result["reason"] == "目标已有中文字幕"
+    assert result["reason"] == "目标已有符合语言要求的字幕"
 
 
 def test_auto_transfer_existing_non_chinese_subtitle_still_searches(tmp_path):
@@ -5352,6 +5372,79 @@ def test_auto_search_write_prefers_chinese_ass_from_multi_subtitle_package(tmp_p
     assert result["written"][0]["output_name"] == "Movie.chi.ass"
 
 
+@pytest.mark.parametrize("mode", ["best", "chinese_all", "all"])
+def test_auto_strict_language_downloads_generic_pack_and_writes_only_selected_pair(tmp_path, mode):
+    module, _, _ = load_plugin_module()
+    plugin = make_plugin(module)
+    plugin._auto_subtitle_language_priority = ["chi&eng"]
+    plugin._auto_subtitle_language_strict = True
+    plugin._auto_multi_subtitle_mode = mode
+    entry = make_auto_entry(tmp_path, filename="Movie.mkv")
+    files = {}
+    for name in ("Movie.chi.jp.srt", "Movie.chi.eng.srt"):
+        path = tmp_path / name
+        path.write_text("1\n00:00:01,000 --> 00:00:02,000\n你好\n", encoding="utf-8")
+        files[name] = path
+
+    class FakeAutoService:
+        def __init__(self):
+            self.downloaded = []
+
+        def search(self, **kwargs):
+            return {"results": [
+                {"provider": "assrt", "title": "Movie 中日双语", "score": 99, "downloadable": True},
+                {"provider": "assrt", "title": "Movie 双语", "score": 90, "downloadable": True},
+            ]}
+
+        def download(self, selected):
+            self.downloaded.append(selected[0]["title"])
+            return [{"provider": "assrt", "source_name": "Movie.zip", "content": b"zip", "result": selected[0]}]
+
+    online_service = FakeAutoService()
+    plugin._online_service = lambda: online_service
+    captured = []
+
+    def fake_write(**kwargs):
+        captured.extend(kwargs["operations"])
+        return [{"output_name": operation["destination_name"]} for operation in kwargs["operations"]], 0, 0
+
+    service = auto_transfer_service_with(
+        plugin,
+        auto_search_keywords_for_entry=lambda *_: ["Movie 2024"],
+        _extract_subtitle_files=lambda *_: [
+            {"upload_id": name, "source_name": name, "stored_path": str(path), "ext": ".srt"}
+            for name, path in files.items()
+        ],
+        _write_operations_to_disk=fake_write,
+        submit_autosub_for_entries=lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("strict mode must not submit AI")),
+    )
+
+    result = service.auto_search_write_subtitle(entry)
+
+    assert result["status"] == "written"
+    assert online_service.downloaded == ["Movie 双语"]
+    assert [operation["upload_info"]["source_name"] for operation in captured] == ["Movie.chi.eng.srt"]
+
+
+def test_auto_strict_language_does_not_fall_back_to_ai(tmp_path):
+    module, _, _ = load_plugin_module()
+    plugin = make_plugin(module)
+    plugin._auto_subtitle_language_priority = ["chi&eng"]
+    plugin._auto_subtitle_language_strict = True
+    plugin._auto_skip_chinese_media_on_transfer = False
+    entry = make_auto_entry(tmp_path, filename="Movie.mkv")
+    service = auto_transfer_service_with(
+        plugin,
+        auto_search_write_subtitle=lambda *args, **kwargs: {"status": "skipped", "reason": "未找到符合语言要求的字幕"},
+        auto_submit_ai_for_entry=lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("strict mode must not fall back to AI")),
+    )
+
+    result = service.auto_process_transfer_entry(entry)
+
+    assert result["status"] == "skipped"
+    assert result["reason"] == "未找到符合语言要求的字幕"
+
+
 def test_auto_write_chinese_all_keeps_chinese_and_bilingual_variants(tmp_path):
     module, _, _ = load_plugin_module()
     plugin = make_plugin(module)
@@ -5394,9 +5487,9 @@ def test_auto_write_chinese_all_keeps_chinese_and_bilingual_variants(tmp_path):
 
     assert result["status"] == "written"
     assert [operation["upload_info"]["source_name"] for operation in captured["operations"]] == [
-        "Movie.chi.eng.srt",
         "Movie.chi.ass",
         "Movie.cht.srt",
+        "Movie.chi.eng.srt",
     ]
 
 
@@ -5599,9 +5692,9 @@ def test_online_ai_falls_back_to_srt_when_foreign_ass_conversion_fails(tmp_path)
 def test_auto_search_providers_use_all_enabled_sources():
     module, _, _ = load_plugin_module()
     plugin = make_plugin(module)
-    plugin._online_provider_ids = ["subhd", "zimuku", "assrt", "opensubtitles"]
+    plugin._online_provider_ids = ["subhd", "zimuku", "assrt", "opensubtitles", "subtitlecat", "subdl"]
 
-    assert plugin._auto_search_providers() == ["subhd", "zimuku", "assrt", "opensubtitles"]
+    assert plugin._auto_search_providers() == ["subhd", "assrt", "opensubtitles", "subtitlecat", "subdl"]
 
 
 def test_transfer_auto_claim_dedupes_same_video_path(tmp_path):

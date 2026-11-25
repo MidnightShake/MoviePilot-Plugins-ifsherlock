@@ -17,10 +17,10 @@ def load_subtitle_inventory():
         if name == package_name or name.startswith(f"{package_name}."):
             sys.modules.pop(name, None)
     package = types.ModuleType(package_name)
-    package.__path__ = [str(V3_CATALOG)]
+    package.__path__ = [str(V3_CATALOG.parent)]
     sys.modules[package_name] = package
     spec = importlib.util.spec_from_file_location(
-        f"{package_name}.subtitle_inventory",
+        f"{package_name}.catalog.subtitle_inventory",
         V3_CATALOG / "subtitle_inventory.py",
     )
     module = importlib.util.module_from_spec(spec)
@@ -214,6 +214,9 @@ def test_manual_strm_incremental_changes_add_remove_and_invalidate_subtitles(tmp
         )
 
         class FakeManualCatalog:
+            def entry_for_path(self, path, roots):
+                return next((entry for entry in self.scan(roots) if entry["path"] == str(path)), None)
+
             def scan(self, roots, max_entries=5000):
                 if not strm.exists():
                     return []
