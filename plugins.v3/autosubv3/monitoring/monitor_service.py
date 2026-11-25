@@ -1,6 +1,7 @@
 import os
 import traceback
-from typing import Any, Callable, List
+from pathlib import Path
+from typing import Any, Callable, List, Optional
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -29,6 +30,46 @@ def transfer_video_paths(event: Any, media_extensions: List[str]) -> List[str]:
             seen.add(key)
             result.append(path)
     return result
+
+
+def _resolve_path(value: Any) -> Optional[Path]:
+    """把配置值或事件路径解析为绝对路径，失败时退化为规范化相对路径。"""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return Path(text).expanduser().resolve()
+    except (OSError, RuntimeError):
+        return Path(os.path.normpath(text))
+
+
+def path_matches_monitor_paths(file_path: Any, monitor_paths: Any) -> bool:
+    """
+    判断文件是否位于监控路径白名单内。
+
+    目录监控与 TransferComplete 事件共用同一份 `path_whitelist`：白名单为空时
+    不限制，否则要求文件等于其中任一路径或位于其子目录下。两侧都先解析符号
+    链接，避免同一目录因挂载或软链接写法不同而漏判；按路径层级比较，避免
+    `/media/links/电视剧2` 误命中 `/media/links/电视剧`。
+    """
+    roots: List[str] = []
+    for item in monitor_paths or []:
+        text = str(item or "").strip()
+        if text:
+            roots.append(text)
+    if not roots:
+        return True
+
+    candidate = _resolve_path(file_path)
+    if candidate is None:
+        return False
+    for root in roots:
+        base = _resolve_path(root)
+        if base is None:
+            continue
+        if candidate == base or candidate.is_relative_to(base):
+            return True
+    return False
 
 
 class FileMonitorHandler(FileSystemEventHandler):

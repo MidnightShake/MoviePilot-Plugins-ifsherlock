@@ -25,7 +25,7 @@ from .core.models import (
     UserInterruptException,
 )
 from .ffmpeg import Ffmpeg
-from .monitoring.monitor_service import MonitorService, transfer_video_paths
+from .monitoring.monitor_service import MonitorService, path_matches_monitor_paths, transfer_video_paths
 from .pipeline.asr_service import AsrService
 from .pipeline.generation_pipeline import GenerationPipeline
 from .pipeline.subtitle_output import SubtitleOutputService
@@ -57,7 +57,7 @@ class AutoSubv3(AutoSubv3CompatMixin, _PluginBase):
     # 主题色
     plugin_color = "#2C4F7E"
     # 插件版本
-    plugin_version = "4.0.7"
+    plugin_version = "4.0.8"
     # 插件作者
     plugin_author = "ifsherlock"
     # 作者主页
@@ -349,6 +349,10 @@ class AutoSubv3(AutoSubv3CompatMixin, _PluginBase):
         if self._generation_mode == GenerationMode.FALLBACK.value or self._subtitlemanualupload_auto_transfer_enabled():
             return
         for file_path in transfer_video_paths(event, settings.RMT_MEDIAEXT):
+            # 入库事件与目录监控共用 path_whitelist，避免整理到其他库的文件被误处理。
+            if not path_matches_monitor_paths(file_path, self._monitor_paths):
+                logger.debug("[AutoSubv3] 入库事件路径不在监控路径内，跳过：%s", file_path)
+                continue
             with self._lock:
                 self.add_task(file_path, TaskSource.EVENT, trigger=TriggerType.EVENT.value)
 

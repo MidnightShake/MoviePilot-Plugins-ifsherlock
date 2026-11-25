@@ -74,7 +74,7 @@ def build_config_form() -> Tuple[List[dict], Dict[str, Any]]:
                                         "label": "监控路径（每行一个）",
                                         "rows": 3,
                                         "placeholder": "/mnt/media/movies\n/downloads",
-                                        "hint": "目录变化时自动触发字幕生成",
+                                        "hint": "目录变化和入库事件都只处理这些路径；留空表示不限制",
                                     },
                                 }
                             ],

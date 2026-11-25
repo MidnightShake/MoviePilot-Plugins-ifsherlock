@@ -38,7 +38,7 @@
     "name": "AI字幕生成(联动版)",
     "description": "自动生成字幕并翻译成中文，支持 faster-whisper 识别、字幕提取、大模型并发翻译与字幕匹配联动。",
     "labels": "字幕,AI,翻译",
-    "version": "4.0.7",
+    "version": "4.0.8",
     "icon": "https://raw.githubusercontent.com/ifsherlock/MoviePilot-Plugins/main/icons/autosubtitles.jpeg",
     "author": "ifsherlock",
     "author_url": "https://github.com/ifsherlock",
@@ -46,6 +46,7 @@
     "system_version": ">=3.0.0",
     "release": true,
     "history": {
+      "v4.0.8": "入库事件（TransferComplete）同样遵守「监控路径」白名单：整理到白名单外目录的视频不再自动提交字幕任务。",
       "v4.0.7": "修复「独立繁体转简体（关闭 AI 翻译）」任务状态：繁转简成功后返回不存在的 TaskStatus.SUCCESS 会抛异常并被记为失败，改为返回 COMPLETED。",
       "v4.0.6": "配置页补齐「独立繁体转简体（关闭 AI 翻译）」开关及互斥逻辑；同时提升版本号，避免前端产物更新后仍命中旧 remoteEntry.js 的长期缓存导致组件加载错误。",
       "v4.0.5": "增加 插入繁转简分支功能。",

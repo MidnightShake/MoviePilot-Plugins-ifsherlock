@@ -1159,7 +1159,7 @@ return (_ctx, _cache) => {
                           label: "监控路径（每行一个）",
                           rows: 3,
                           placeholder: "/mnt/media/movies\n/downloads",
-                          hint: "目录变化时自动触发字幕生成",
+                          hint: "目录变化和入库事件都只处理这些路径；留空表示不限制",
                           "persistent-hint": ""
                         }, null, 8, ["modelValue"])
                       ]),
@@ -1241,6 +1241,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const Config = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-bfa5be6e"]]);
+const Config = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-aab1c310"]]);
 
 export { Config as default };
