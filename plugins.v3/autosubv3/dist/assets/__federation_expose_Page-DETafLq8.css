@@ -1,20 +1,20 @@
 
-.summary-strip[data-v-4050fd67] {
+.summary-strip[data-v-95d5eebc] {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
 }
-.filter-chip[data-v-4050fd67] {
+.filter-chip[data-v-95d5eebc] {
   cursor: pointer;
   user-select: none;
 }
 
-.task-list[data-v-5ed0ba0d] {
+.task-list[data-v-b89ad333] {
   display: grid;
   gap: 10px;
 }
-.task-row[data-v-5ed0ba0d] {
+.task-row[data-v-b89ad333] {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) auto;
   gap: 12px;
@@ -24,24 +24,24 @@
   background: rgb(var(--v-theme-surface));
   padding: 12px;
 }
-.task-row.selected[data-v-5ed0ba0d] {
+.task-row.selected[data-v-b89ad333] {
   border-color: rgba(var(--v-theme-primary), 0.45);
 }
-.task-title[data-v-5ed0ba0d] {
+.task-title[data-v-b89ad333] {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   margin-bottom: 6px;
 }
-.task-path[data-v-5ed0ba0d] {
+.task-path[data-v-b89ad333] {
   color: rgba(var(--v-theme-on-surface), 0.74);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
-.task-meta[data-v-5ed0ba0d] {
+.task-meta[data-v-b89ad333] {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -49,7 +49,7 @@
   color: rgba(var(--v-theme-on-surface), 0.58);
   font-size: 12px;
 }
-.task-message[data-v-5ed0ba0d] {
+.task-message[data-v-b89ad333] {
   display: -webkit-box;
   margin-top: 7px;
   overflow: hidden;
@@ -60,15 +60,15 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
-.task-message-error[data-v-5ed0ba0d] {
+.task-message-error[data-v-b89ad333] {
   color: rgb(var(--v-theme-error));
   cursor: help;
 }
-.task-actions[data-v-5ed0ba0d] {
+.task-actions[data-v-b89ad333] {
   display: flex;
   gap: 8px;
 }
-.empty-state[data-v-5ed0ba0d] {
+.empty-state[data-v-b89ad333] {
   border: 1px dashed rgba(var(--v-border-color), 0.28);
   border-radius: 8px;
   color: rgba(var(--v-theme-on-surface), 0.62);
@@ -76,30 +76,30 @@
   text-align: center;
 }
 @media (max-width: 760px) {
-.task-row[data-v-5ed0ba0d] {
+.task-row[data-v-b89ad333] {
     grid-template-columns: 36px minmax(0, 1fr);
 }
-.task-actions[data-v-5ed0ba0d] {
+.task-actions[data-v-b89ad333] {
     grid-column: 2;
 }
 }
 
-.autosub-toolbar[data-v-611b4f25] {
+.autosub-toolbar[data-v-0f14cdad] {
   position: sticky;
   top: 0;
   z-index: 10;
   background: rgb(var(--v-theme-surface));
 }
-.toolbar-subtitle[data-v-611b4f25] {
+.toolbar-subtitle[data-v-0f14cdad] {
   color: rgba(var(--v-theme-on-surface), 0.62);
   font-size: 12px;
   line-height: 1.3;
 }
 
-.autosub-page[data-v-710ac1d5] {
+.autosub-page[data-v-6257e2a3] {
   min-height: 100%;
   background: rgb(var(--v-theme-background));
 }
-.autosub-content[data-v-710ac1d5] {
+.autosub-content[data-v-6257e2a3] {
   padding: 18px;
 }

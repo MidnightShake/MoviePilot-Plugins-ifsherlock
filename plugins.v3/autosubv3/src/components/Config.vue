@@ -32,6 +32,7 @@ const defaultConfig = {
   file_size: '10',
   translate_preference: 'english_first',
   translate_zh: true,
+  hanvert_only: false,
   enable_asr: true,
   auto_detect_language: false,
   skip_chinese: false,
@@ -137,7 +138,12 @@ watch(
     Object.assign(config, normalizeInitialConfig(value))
   },
 )
-
+watch(
+  () => config.hanvert_only,
+  (val) => {
+    if (val) config.translate_zh = false
+  },
+)
 function updateEndpoints(value) {
   config.openai_endpoints = Array.isArray(value)
     ? value.map(item => ({ ...item, model: normalizeModelValue(item.model) }))
@@ -233,6 +239,9 @@ function save() {
           </VCol>
           <VCol cols="12" md="3">
             <VSwitch v-model="config.translate_zh" label="外语翻译成中文" hide-details />
+          </VCol>
+          <VCol cols="12" md="3">
+            <VSwitch  v-model="config.hanvert_only" label="独立繁体转简体（关闭 AI 翻译）" color="success" hide-details />
           </VCol>
           <VCol cols="12" md="3">
             <VSwitch v-model="config.skip_chinese" label="中文视频不翻译" hide-details />
