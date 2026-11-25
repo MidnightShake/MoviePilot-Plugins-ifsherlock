@@ -38,7 +38,7 @@
     "name": "AI字幕生成(联动版)",
     "description": "自动生成字幕并翻译成中文，支持 faster-whisper 识别、字幕提取、大模型并发翻译与字幕匹配联动。",
     "labels": "字幕,AI,翻译",
-    "version": "4.0.3",
+    "version": "4.0.5",
     "icon": "https://raw.githubusercontent.com/ifsherlock/MoviePilot-Plugins/main/icons/autosubtitles.jpeg",
     "author": "ifsherlock",
     "author_url": "https://github.com/ifsherlock",
@@ -46,6 +46,7 @@
     "system_version": ">=3.0.0",
     "release": true,
     "history": {
+      "v4.0.5": "增加 插入繁转简分支功能。",
       "v4.0.4": "修复增加 V3 字幕文件内容过滤清理。",
       "v4.0.3": "修复 #15：Hugging Face 模型下载改为独立进程，代理不再污染 MoviePilot 主进程或其他插件；完整本地缓存直接使用，缺失文件才联网；保留失败重试、取消回收与错误脱敏。关闭选项不注入 MP 代理，仍继承容器网络环境。升级后请重启 MoviePilot 清除旧版残留代理。",
       "v4.0.2": "修复入库事件处理器参数和 EVENT 触发类型缺失；分离监控启动与事件提交，正确保留任务来源；验证禁用、后备模式、字幕插件接管和重复事件去重。",

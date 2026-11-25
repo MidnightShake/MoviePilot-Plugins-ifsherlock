@@ -116,6 +116,14 @@ def build_config_form() -> Tuple[List[dict], Dict[str, Any]]:
                             "content": [{"component": "VSwitch", "props": {"model": "translate_zh", "label": "外语翻译成中文", "hint": "使用 OpenAI 兼容大模型翻译"}}],
                         },
                         {
+                            "component": "VSwitch",
+                            "props": {
+                                "model": "hanvert_only",
+                                "label": "独立繁体转简体（关闭 AI 翻译）",
+                                "hint": "开启后对提取的字幕执行繁转简，不调用 AI 翻译",
+                            },
+                        },
+                        {
                             "component": "VCol",
                             "props": {"cols": 12, "md": 2},
                             "content": [{"component": "VSwitch", "props": {"model": "skip_chinese", "label": "中文视频不翻译", "hint": "Whisper 检测到中文时跳过翻译"}}],
@@ -335,6 +343,7 @@ def build_config_form() -> Tuple[List[dict], Dict[str, Any]]:
         "file_size": "10",
         "translate_preference": "english_first",
         "translate_zh": True,
+        "hanvert_only": False,
         "enable_asr": True,
         "auto_detect_language": False,
         "skip_chinese": False,

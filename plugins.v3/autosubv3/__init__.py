@@ -57,7 +57,7 @@ class AutoSubv3(AutoSubv3CompatMixin, _PluginBase):
     # 主题色
     plugin_color = "#2C4F7E"
     # 插件版本
-    plugin_version = "4.0.3"
+    plugin_version = "4.0.5"
     # 插件作者
     plugin_author = "ifsherlock"
     # 作者主页
@@ -157,6 +157,9 @@ class AutoSubv3(AutoSubv3CompatMixin, _PluginBase):
         self._max_segment_duration = float(config.get('max_segment_duration')) if config.get('max_segment_duration') else 8.0
         self._max_segment_chars = int(config.get('max_segment_chars')) if config.get('max_segment_chars') else 50
         self._translate_zh = config.get('translate_zh', False)
+        if self._hanvert_only:
+            self._translate_zh = False
+            logger.info("[AutoSubv3] 独立繁体转简体已启用，AI 翻译已强制关闭")
         self._openai_endpoints, self._openai_active_endpoint, self._openai_fallback_enabled = normalize_openai_endpoints(config)
         if apply_openai_endpoint_compatibility_fields(
             config,

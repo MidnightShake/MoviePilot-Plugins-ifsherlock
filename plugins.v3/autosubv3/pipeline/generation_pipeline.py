@@ -25,6 +25,57 @@ class GenerationPipeline:
             task.error_message = detail
         return detail
 
+    def _hanvert_subtitle_inplace(self, subtitle_path: str) -> bool:
+        """
+        就地繁转简。ASS/SSA 走 ass-hanvert；SRT 走 OpenCC。
+        返回 True 表示转换成功（或字幕本身已是简体，无需转换）。
+        """
+        from pathlib import Path
+
+        path = Path(subtitle_path)
+        if not path.exists():
+            self._logger.error(f"[Hanvert] 文件不存在：{subtitle_path}")
+            return False
+
+        suffix = path.suffix.lower()
+
+        # ---------- ASS / SSA：ass-hanvert ----------
+        if suffix in (".ass", ".ssa"):
+            try:
+                from light_ass import Document
+                from ass_hanvert import convert_ass, OpenCCConverter
+
+                doc = Document.load(str(path))
+                stats = convert_ass(doc, converter=OpenCCConverter.Simplified)
+                doc.save(str(path))  # 就地保存
+                self._logger.info(f"[Hanvert] ASS 转换完成 stats={stats}")
+                return True
+            except ImportError:
+                self._logger.warning(
+                    "[Hanvert] ass-hanvert / light-ass 未安装，降级到 OpenCC"
+                )
+            except Exception as exc:
+                self._logger.warning(
+                    f"[Hanvert] ass-hanvert 转换失败，降级到 OpenCC：{exc}"
+                )
+
+        # ---------- SRT 及降级路径：OpenCC ----------
+        try:
+            import opencc
+
+            converter = opencc.OpenCC("t2s")
+            content = path.read_text(encoding="utf-8")
+            converted = converter.convert(content)
+            if converted == content:
+                self._logger.info("[Hanvert] 内容未变化，可能已是简体，跳过写入")
+                return True
+            path.write_text(converted, encoding="utf-8")
+            self._logger.info("[Hanvert] OpenCC SRT/降级转换完成")
+            return True
+        except Exception as exc:
+            self._logger.error(f"[Hanvert] OpenCC 转换失败：{exc}", exc_info=True)
+            return False
+        
     def process_autosub(
         self,
         video_file,
@@ -122,6 +173,37 @@ class GenerationPipeline:
                 return TaskStatus.FAILED
 
             self._logger.info("[Step 6] 翻译字幕（如果需要）")
+
+            # ===== 独立繁体转简体分支 =====
+            if plugin._hanvert_only:
+                self._logger.info("[Step 6-Hanvert] 独立繁体转简体模式，跳过 AI 翻译")
+                try:
+                    hanvert_ok = self._hanvert_subtitle_inplace(gen_sub_path)
+                    if not hanvert_ok:
+                        self._set_task_error("繁转简失败")
+                        return TaskStatus.FAILED
+
+                    translated_subtitle, output_variant = plugin._prepare_output_path(
+                        file_path, "zh", "chinese_only", resolved_source,
+                        overwrite_policy, inherited_variant=output_variant,
+                        inherited_output_path=reuse_output_path,
+                    )
+                    import shutil
+                    shutil.copy2(gen_sub_path, translated_subtitle)
+
+                    if plugin._current_processing_task:
+                        plugin._current_processing_task.output_path = translated_subtitle
+                        plugin._current_processing_task.output_variant = output_variant
+                    self._logger.info(
+                        f"[Step 6-Hanvert] 繁转简完成，已落盘：{translated_subtitle}"
+                    )
+                    return TaskStatus.SUCCESS
+                except Exception as exc:
+                    self._set_task_error(f"繁转简异常：{exc}")
+                    self._logger.error("[Step 6-Hanvert] 失败", exc_info=True)
+                    return TaskStatus.FAILED
+            # ===== 分支结束，下方为原有 AI 翻译逻辑 =====
+
             translated_to_zh = False
             if plugin._translate_zh:
                 self._logger.info("开始翻译字幕为中文 ...")
